@@ -38,6 +38,7 @@ export class AIService {
                 temperature: 0.7, // Controls randomness: 0.0 = deterministic, 1.0 = very creative/random
             });
 
+
             return (
                 response.choices[0]?.message?.content ||
                 'Failed to generate README content'
@@ -59,8 +60,6 @@ Create a comprehensive README.md file for a GitHub repository with the following
 - Name: ${repoData.name}
 - Description: ${repoData.description}
 - Primary Language: ${repoData.language}
-- Stars: ${repoData.stars}
-- Forks: ${repoData.forks}
 - License: ${repoData.license || 'Not specified'}
 - Topics: ${repoData.topics.join(', ') || 'None'}
 
@@ -70,8 +69,7 @@ Files in root directory: ${repoData.filesStructure.join(', ')}
 **Package Information:**
 ${
     repoData.hasPackageJson
-        ? `
-- Has package.json: Yes
+        ? `- Has package.json: Yes
 - Package name: ${repoData.packageJsonContent?.name || 'N/A'}
 - Dependencies: ${
               repoData.packageJsonContent?.dependencies
@@ -79,13 +77,7 @@ ${
                         ', '
                     )
                   : 'None listed'
-          }
-- Scripts: ${
-              repoData.packageJsonContent?.scripts
-                  ? Object.keys(repoData.packageJsonContent.scripts).join(', ')
-                  : 'None listed'
-          }
-`
+          }`
         : '- Has package.json: No'
 }
 
@@ -93,12 +85,11 @@ ${
 Recent commit messages:
 ${repoData.recentCommits.map((commit) => `- ${commit}`).join('\n')}
 
-Please generate a professional README.md that includes:
+Please generate a simple README.md that includes:
 1. Project title and description
 2. Installation instructions (appropriate for ${repoData.language})
 3. Usage examples
 4. Features section
-5. Contributing guidelines
 6. License information
 7. Any other relevant sections based on the project type
 
