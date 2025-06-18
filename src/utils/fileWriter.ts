@@ -1,5 +1,5 @@
-import { writeFile, access, constants } from 'fs/promises';
-import { dirname } from 'path';
+import { writeFile, access, constants, stat } from 'fs/promises';
+import { dirname, join } from 'path';
 import { ensureDir } from 'fs-extra';
 
 export class FileWriter {

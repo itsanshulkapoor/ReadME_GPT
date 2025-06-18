@@ -18,8 +18,15 @@ export class GitHubService {
     private octokit: Octokit;
 
     constructor(token?: string) {
+        const authToken = token || process.env.GITHUB_TOKEN;
+        if (!authToken) {
+            console.warn(
+                'No GitHub token provided. API rate limits will be lower for unauthenticated requests.'
+            );
+        }
+
         this.octokit = new Octokit({
-            auth: token || process.env.GITHUB_TOKEN,
+            auth: authToken,
         });
     }
 
@@ -61,6 +68,7 @@ export class GitHubService {
                                 path: 'package.json',
                             });
                         if ('content' in packageData) {
+                            // Decode base64 content from GitHub API response to readable string
                             const content = Buffer.from(
                                 packageData.content,
                                 'base64'
@@ -86,7 +94,7 @@ export class GitHubService {
                 ? contents.map((item) => item.name)
                 : [];
 
-            return {
+            const responseData = {
                 name: repoInfo.name,
                 description: repoInfo.description || '',
                 language: repoInfo.language || 'Unknown',
@@ -99,6 +107,7 @@ export class GitHubService {
                 filesStructure,
                 recentCommits: commits.map((commit) => commit.commit.message),
             };
+            return responseData;
         } catch (error) {
             throw new Error(
                 `Failed to fetch repository data: ${

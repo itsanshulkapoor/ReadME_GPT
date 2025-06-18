@@ -5,8 +5,13 @@ export class AIService {
     private openai: OpenAI;
     private model: string;
 
-    constructor(model: string = 'gpt-3.5-turbo') {
-        this.model = model;
+    constructor(model?: string) {
+        this.model = model || process.env.DEFAULT_AI_MODEL || 'gpt-3.5-turbo';
+
+        if (!process.env.OPENAI_API_KEY) {
+            throw new Error('OPENAI_API_KEY environment variable is required');
+        }
+
         this.openai = new OpenAI({
             apiKey: process.env.OPENAI_API_KEY,
         });
@@ -29,8 +34,8 @@ export class AIService {
                         content: prompt,
                     },
                 ],
-                max_tokens: 2000,
-                temperature: 0.7,
+                max_tokens: 2000, // Maximum number of tokens (words/characters) the AI can generate in response
+                temperature: 0.7, // Controls randomness: 0.0 = deterministic, 1.0 = very creative/random
             });
 
             return (

@@ -4,9 +4,25 @@ import { GitHubService } from '../utils/github.js';
 import { AIService } from '../utils/ai.js';
 import { FileWriter } from '../utils/fileWriter.js';
 
-interface GenerateOptions {
+type GenerateOptions = {
     output: string;
     aiModel: string;
+};
+
+function parseGitHubUrl(url: string): { owner: string; repo: string } {
+    const regex = /github\.com\/([^\/]+)\/([^\/]+)/;
+    const match = url.match(regex);
+
+    if (!match || !match[1] || !match[2]) {
+        throw new Error(
+            'Invalid GitHub URL format. Expected: https://github.com/owner/repo'
+        );
+    }
+
+    return {
+        owner: match[1],
+        repo: match[2].replace(/\.git$/, ''), // Remove .git suffix if present
+    };
 }
 
 export async function generateCommand(
@@ -52,20 +68,4 @@ export async function generateCommand(
         );
         process.exit(1);
     }
-}
-
-function parseGitHubUrl(url: string): { owner: string; repo: string } {
-    const regex = /github\.com\/([^\/]+)\/([^\/]+)/;
-    const match = url.match(regex);
-
-    if (!match || !match[1] || !match[2]) {
-        throw new Error(
-            'Invalid GitHub URL format. Expected: https://github.com/owner/repo'
-        );
-    }
-
-    return {
-        owner: match[1],
-        repo: match[2].replace(/\.git$/, ''), // Remove .git suffix if present
-    };
 }
