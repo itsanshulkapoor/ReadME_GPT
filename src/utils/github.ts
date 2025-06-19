@@ -50,84 +50,16 @@ export class GitHubService {
                 }
             );
 
-            //filter out files or folders mentioned in .gitignore
-            if (Array.isArray(contents)) {
-                const maybeGitIgnore = contents.find(
-                    (file) => file.name === '.gitignore'
-                );
-                if (maybeGitIgnore) {
-                    try {
-                        const { data: gitIgnoreData } =
-                            await this.octokit.rest.repos.getContent({
-                                owner,
-                                repo,
-                                path: '.gitignore',
-                            });
-                        if ('content' in gitIgnoreData) {
-                            const gitIgnoreContent = Buffer.from(
-                                gitIgnoreData.content,
-                                'base64'
-                            ).toString();
-
-                            //split the gitIgnoreContent into lines
-                            const gitIgnoreLines = gitIgnoreContent
-                                .split('\n')
-                                .filter((item) => item.trim() !== '')
-                                .filter((item) => !item.startsWith('#'));
-                            console.log(
-                                '\n\ngitIgnoreLines\n\n',
-                                gitIgnoreLines
-                            );
-                            //filter out the files or folders mentioned in .gitignore
-                            const validContents = contents.filter((file) => {
-                                if (
-                                    file.type === 'dir' &&
-                                    !file.name.startsWith('.')
-                                ) {
-                                    return !gitIgnoreLines.includes(
-                                        `/${file.name}`
-                                    );
-                                }
-                                return !gitIgnoreLines.includes(file.name);
-                            });
-                            console.log('\n\nValidContents\n\n', validContents);
-                        }
-                    } catch (error) {
-                        console.warn('Failed to fetch .gitignore content');
-                    }
-                }
-            }
+            // Filter out files or folders mentioned in .gitignore
+            const filteredContents = await this.filterByGitIgnore(
+                owner,
+                repo,
+                contents
+            );
 
             // Check for package.json
-            let hasPackageJson = false;
-            let packageJsonContent;
-
-            if (Array.isArray(contents)) {
-                const packageJsonFile = contents.find(
-                    (file) => file.name === 'package.json'
-                );
-                if (packageJsonFile) {
-                    hasPackageJson = true;
-                    try {
-                        const { data: packageData } =
-                            await this.octokit.rest.repos.getContent({
-                                owner,
-                                repo,
-                                path: 'package.json',
-                            });
-                        if ('content' in packageData) {
-                            // Decode base64 content from GitHub API response to readable string
-                            const content = Buffer.from(
-                                packageData.content,
-                                'base64'
-                            ).toString();
-                            packageJsonContent = JSON.parse(content);
-                        }
-                    } catch (error) {
-                        console.warn('Failed to fetch package.json content');
-                    }
-                }
-            }
+            const { hasPackageJson, packageJsonContent } =
+                await this.getPackageJsonData(owner, repo, contents);
 
             // Get recent commits
             const { data: commits } = await this.octokit.rest.repos.listCommits(
@@ -142,7 +74,7 @@ export class GitHubService {
                 ? contents.map((item) => item.name)
                 : [];
 
-            const responseData = {
+            return {
                 name: repoInfo.name,
                 description: repoInfo.description || '',
                 language: repoInfo.language || 'Unknown',
@@ -155,8 +87,6 @@ export class GitHubService {
                 filesStructure,
                 recentCommits: commits.map((commit) => commit.commit.message),
             };
-            // console.log('\n\nresponseData');
-            return responseData;
         } catch (error) {
             throw new Error(
                 `Failed to fetch repository data: ${
@@ -164,5 +94,140 @@ export class GitHubService {
                 }`
             );
         }
+    }
+
+    private async filterByGitIgnore(
+        owner: string,
+        repo: string,
+        contents: any
+    ): Promise<any[]> {
+        // Early return if contents is not an array
+        if (!Array.isArray(contents)) {
+            return [];
+        }
+
+        const gitIgnoreFile = contents.find(
+            (file) => file.name === '.gitignore'
+        );
+
+        // Early return if no .gitignore file found
+        if (!gitIgnoreFile) {
+            return contents;
+        }
+
+        try {
+            const gitIgnoreContent = await this.fetchGitIgnoreContent(
+                owner,
+                repo
+            );
+
+            // Early return if no content found
+            if (!gitIgnoreContent) {
+                return contents;
+            }
+
+            const gitIgnoreLines = this.parseGitIgnoreLines(gitIgnoreContent);
+            const validContents = this.filterContentsByGitIgnore(
+                contents,
+                gitIgnoreLines
+            );
+
+            console.log('\n\nValidContents\n\n', validContents);
+            return validContents;
+        } catch (error) {
+            console.error('Failed to fetch .gitignore content');
+            return contents; // Return original contents on error
+        }
+    }
+
+    private async fetchGitIgnoreContent(
+        owner: string,
+        repo: string
+    ): Promise<string | null> {
+        const { data: gitIgnoreData } =
+            await this.octokit.rest.repos.getContent({
+                owner,
+                repo,
+                path: '.gitignore',
+            });
+
+        // Guard clause: return null if no content
+        if (!('content' in gitIgnoreData)) {
+            return null;
+        }
+
+        return Buffer.from(gitIgnoreData.content, 'base64').toString();
+    }
+
+    private parseGitIgnoreLines(gitIgnoreContent: string): string[] {
+        return gitIgnoreContent
+            .split('\n')
+            .filter((item) => item.trim() !== '')
+            .filter((item) => !item.startsWith('#'));
+    }
+
+    private filterContentsByGitIgnore(
+        contents: any[],
+        gitIgnoreLines: string[]
+    ): any[] {
+        return contents.filter((file) => {
+            if (file.type === 'dir' && !file.name.startsWith('.')) {
+                return !gitIgnoreLines.includes(`/${file.name}`);
+            }
+            return !gitIgnoreLines.includes(file.name);
+        });
+    }
+
+    private async getPackageJsonData(
+        owner: string,
+        repo: string,
+        contents: any
+    ): Promise<{ hasPackageJson: boolean; packageJsonContent?: any }> {
+        // Early return if contents is not an array
+        if (!Array.isArray(contents)) {
+            return { hasPackageJson: false };
+        }
+
+        const packageJsonFile = contents.find(
+            (file) => file.name === 'package.json'
+        );
+
+        // Early return if no package.json found
+        if (!packageJsonFile) {
+            return { hasPackageJson: false };
+        }
+
+        try {
+            const packageJsonContent = await this.fetchPackageJsonContent(
+                owner,
+                repo
+            );
+            return {
+                hasPackageJson: true,
+                packageJsonContent,
+            };
+        } catch (error) {
+            console.warn('Failed to fetch package.json content');
+            return { hasPackageJson: true }; // File exists but couldn't fetch content
+        }
+    }
+
+    private async fetchPackageJsonContent(
+        owner: string,
+        repo: string
+    ): Promise<any> {
+        const { data: packageData } = await this.octokit.rest.repos.getContent({
+            owner,
+            repo,
+            path: 'package.json',
+        });
+
+        // Guard clause: throw error if no content
+        if (!('content' in packageData)) {
+            throw new Error('Package.json content not found');
+        }
+
+        const content = Buffer.from(packageData.content, 'base64').toString();
+        return JSON.parse(content);
     }
 }
