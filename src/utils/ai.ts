@@ -66,20 +66,6 @@ Create a comprehensive README.md file for a GitHub repository with the following
 **Project Structure:**
 Files in root directory: ${repoData.filesStructure.join(', ')}
 
-**Package Information:**
-${
-    repoData.hasPackageJson
-        ? `- Has package.json: Yes
-- Package name: ${repoData.packageJsonContent?.name || 'N/A'}
-- Dependencies: ${
-              repoData.packageJsonContent?.dependencies
-                  ? Object.keys(repoData.packageJsonContent.dependencies).join(
-                        ', '
-                    )
-                  : 'None listed'
-          }`
-        : '- Has package.json: No'
-}
 
 **Recent Activity:**
 Recent commit messages:
