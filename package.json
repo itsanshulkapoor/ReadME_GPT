@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc",
     "start": "npm run build && node -r dotenv/config dist/bin/index.js",
-    "dev": "node -r dotenv/config node_modules/.bin/ts-node src/bin/index.ts",
+    "dev": "NODE_OPTIONS=\"--loader ts-node/esm\" nodemon -r dotenv/config --ext ts,js,json src/bin/index.ts",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -41,8 +41,9 @@
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.44.0",
-    "ts-node": "^10.9.0",
-    "typescript": "^5.1.0"
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
   },
   "engines": {
     "node": ">=16.0.0"

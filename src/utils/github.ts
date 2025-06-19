@@ -50,6 +50,54 @@ export class GitHubService {
                 }
             );
 
+            //filter out files or folders mentioned in .gitignore
+            if (Array.isArray(contents)) {
+                const maybeGitIgnore = contents.find(
+                    (file) => file.name === '.gitignore'
+                );
+                if (maybeGitIgnore) {
+                    try {
+                        const { data: gitIgnoreData } =
+                            await this.octokit.rest.repos.getContent({
+                                owner,
+                                repo,
+                                path: '.gitignore',
+                            });
+                        if ('content' in gitIgnoreData) {
+                            const gitIgnoreContent = Buffer.from(
+                                gitIgnoreData.content,
+                                'base64'
+                            ).toString();
+
+                            //split the gitIgnoreContent into lines
+                            const gitIgnoreLines = gitIgnoreContent
+                                .split('\n')
+                                .filter((item) => item.trim() !== '')
+                                .filter((item) => !item.startsWith('#'));
+                            console.log(
+                                '\n\ngitIgnoreLines\n\n',
+                                gitIgnoreLines
+                            );
+                            //filter out the files or folders mentioned in .gitignore
+                            const validContents = contents.filter((file) => {
+                                if (
+                                    file.type === 'dir' &&
+                                    !file.name.startsWith('.')
+                                ) {
+                                    return !gitIgnoreLines.includes(
+                                        `/${file.name}`
+                                    );
+                                }
+                                return !gitIgnoreLines.includes(file.name);
+                            });
+                            console.log('\n\nValidContents\n\n', validContents);
+                        }
+                    } catch (error) {
+                        console.warn('Failed to fetch .gitignore content');
+                    }
+                }
+            }
+
             // Check for package.json
             let hasPackageJson = false;
             let packageJsonContent;
@@ -107,6 +155,7 @@ export class GitHubService {
                 filesStructure,
                 recentCommits: commits.map((commit) => commit.commit.message),
             };
+            // console.log('\n\nresponseData');
             return responseData;
         } catch (error) {
             throw new Error(
