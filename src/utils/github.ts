@@ -8,7 +8,7 @@ export interface RepositoryData {
     forks: number;
     license: string | null;
     topics: string[];
-    hasPackageJson: boolean;
+    hasPackageJson?: boolean;
     packageJsonContent?: any;
     filesStructure: string[];
     recentCommits: string[];
@@ -57,10 +57,6 @@ export class GitHubService {
                 contents
             );
 
-            // Check for package.json
-            const { hasPackageJson, packageJsonContent } =
-                await this.getPackageJsonData(owner, repo, contents);
-
             // Get recent commits
             const { data: commits } = await this.octokit.rest.repos.listCommits(
                 {
@@ -82,8 +78,6 @@ export class GitHubService {
                 forks: repoInfo.forks_count,
                 license: repoInfo.license?.name || null,
                 topics: repoInfo.topics || [],
-                hasPackageJson,
-                packageJsonContent,
                 filesStructure,
                 recentCommits: commits.map((commit) => commit.commit.message),
             };
@@ -176,58 +170,5 @@ export class GitHubService {
             }
             return !gitIgnoreLines.includes(file.name);
         });
-    }
-
-    private async getPackageJsonData(
-        owner: string,
-        repo: string,
-        contents: any
-    ): Promise<{ hasPackageJson: boolean; packageJsonContent?: any }> {
-        // Early return if contents is not an array
-        if (!Array.isArray(contents)) {
-            return { hasPackageJson: false };
-        }
-
-        const packageJsonFile = contents.find(
-            (file) => file.name === 'package.json'
-        );
-
-        // Early return if no package.json found
-        if (!packageJsonFile) {
-            return { hasPackageJson: false };
-        }
-
-        try {
-            const packageJsonContent = await this.fetchPackageJsonContent(
-                owner,
-                repo
-            );
-            return {
-                hasPackageJson: true,
-                packageJsonContent,
-            };
-        } catch (error) {
-            console.warn('Failed to fetch package.json content');
-            return { hasPackageJson: true }; // File exists but couldn't fetch content
-        }
-    }
-
-    private async fetchPackageJsonContent(
-        owner: string,
-        repo: string
-    ): Promise<any> {
-        const { data: packageData } = await this.octokit.rest.repos.getContent({
-            owner,
-            repo,
-            path: 'package.json',
-        });
-
-        // Guard clause: throw error if no content
-        if (!('content' in packageData)) {
-            throw new Error('Package.json content not found');
-        }
-
-        const content = Buffer.from(packageData.content, 'base64').toString();
-        return JSON.parse(content);
     }
 }

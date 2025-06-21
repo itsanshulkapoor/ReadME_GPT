@@ -47,12 +47,12 @@ export async function generateCommand(
         const repoData = await githubService.getRepositoryData(owner, repo);
 
         // Generate README content
-        spinner.text = 'Generating README content with AI...';
-        const readmeContent = await aiService.generateReadme(repoData);
+        // spinner.text = 'Generating README content with AI...';
+        // const readmeContent = await aiService.generateReadme(repoData);
 
-        // Write README file
-        spinner.text = 'Writing README file...';
-        await fileWriter.writeFile(options.output, readmeContent);
+        // // Write README file
+        // spinner.text = 'Writing README file...';
+        // await fileWriter.writeFile(options.output, readmeContent);
 
         spinner.succeed(
             chalk.green(`✅ README generated successfully at ${options.output}`)
