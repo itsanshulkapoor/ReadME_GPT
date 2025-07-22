@@ -1,9 +1,11 @@
-import { writeFile, access, constants, stat } from 'fs/promises';
-import { dirname, join } from 'path';
+import { writeFile, access, constants } from 'fs/promises';
+import { dirname } from 'path';
 import { ensureDir } from 'fs-extra';
 
 export class FileWriter {
     async writeFile(filePath: string, content: string): Promise<void> {
+        console.log('filePath\n\n', filePath);
+        console.log('1. content\n\n', content);
         try {
             // Ensure the directory exists
             const dir = dirname(filePath);
