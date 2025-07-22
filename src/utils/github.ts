@@ -126,7 +126,6 @@ export class GitHubService {
                 gitIgnoreLines
             );
 
-            console.log('\n\nValidContents\n\n', validContents);
             return validContents;
         } catch (error) {
             console.error('Failed to fetch .gitignore content');
